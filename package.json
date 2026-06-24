@@ -1,0 +1,10 @@
+{
+  "name": "@buildinamsterdam/storyblok-scripts",
+  "version": "0.1.0",
+  "description": "Reusable Storyblok Management API scripts for translation setup and automation",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["storyblok", "cms", "scripts", "translation", "automation"]
+}
