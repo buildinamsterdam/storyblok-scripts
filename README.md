@@ -60,6 +60,8 @@ node scripts/storyblok-make-fields-translatable.mjs
 - For missing translations, calls the free MyMemory API to translate EN → DE
 - Updates each missing dimension value, respecting existing translations
 
+> this script translates English to German as an example, you can adjust to translate other languages
+
 **Usage:**
 ```sh
 # Translate only missing entries (gaps)
