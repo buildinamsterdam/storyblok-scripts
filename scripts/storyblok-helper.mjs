@@ -78,8 +78,34 @@ export const createApi = ({ token, spaceId, delayMs = 300 }) => {
     return { status: res.status, data: json }
   }
 
+  const get = (path) => request("GET", path)
+
+  /**
+   * Paginate through all results for a list endpoint.
+   * Stops when a page returns fewer items than per_page.
+   *
+   * @param {string} path - API path (e.g. "/stories", "/assets")
+   * @param {Record<string, string>} [params] - Additional query params
+   * @returns {Promise<any[]>} - Flattened array of all items
+   */
+  const getAll = async (path, params = {}) => {
+    const items = []
+    let page = 1
+    while (true) {
+      const query = new URLSearchParams({ ...params, per_page: "100", page: String(page) }).toString()
+      const { status, data } = await get(`${path}?${query}`)
+      if (status !== 200) break
+      const arr = Object.values(data).find((v) => Array.isArray(v)) ?? []
+      items.push(...arr)
+      if (arr.length < 100) break
+      page++
+    }
+    return items
+  }
+
   return {
-    get: (path) => request("GET", path),
+    get,
+    getAll,
     post: (path, body) => request("POST", path, body),
     put: (path, body) => request("PUT", path, body),
     del: (path) => request("DELETE", path),

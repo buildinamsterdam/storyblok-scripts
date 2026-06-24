@@ -88,6 +88,58 @@ node scripts/storyblok-autotranslate-datasource.mjs --force
 
 ---
 
+### `storyblok-unused-assets.mjs`
+
+**When to use:** Your Storyblok space is approaching its asset storage limit, you want to audit what's been uploaded but never used, or you're doing a general clean-up before handing a space over to a client.
+
+**What it does:**
+- Fetches all stories and stringifies their content for URL matching
+- Fetches all assets (optionally scoped to a specific folder via `--folder-id`)
+- Flags any asset whose CDN path doesn't appear anywhere in story content as unused
+- Reports unused count and total reclaimable storage in MB
+- Default: **dry run** — lists unused assets without touching anything
+- With `--delete`: permanently removes unused assets from the space
+
+> ⚠️ Assets referenced outside Storyblok — hardcoded in code, CSS, emails, or external tools — will appear as unused. Always review the list before running `--delete`.
+
+**Usage:**
+```sh
+# Dry run — list unused assets and how much space they take
+node scripts/storyblok-unused-assets.mjs
+
+# Scope to a specific asset folder (find folder ID in the Storyblok UI URL)
+node scripts/storyblok-unused-assets.mjs --folder-id=123456
+
+# Actually delete unused assets
+node scripts/storyblok-unused-assets.mjs --delete
+
+# Scope + delete
+node scripts/storyblok-unused-assets.mjs --folder-id=123456 --delete
+```
+
+**Output:**
+```
+📖  Fetching all stories...
+⏳  Fetching full content for 84 stories...
+✅  Loaded 84 stories
+🖼️   Fetching assets...
+✅  Found 312 assets
+
+📊  Results: 47 unused of 312 total assets
+💾  Reclaimable storage: 214.3 MB
+
+  🗂️   hero-old-v2.jpg (4.2 MB)
+  🗂️   test-upload.png (0.1 MB)
+  ...
+
+ℹ️   Dry run — run with --delete to permanently remove these assets
+⚠️   Review the list first: assets used outside Storyblok will appear here too
+```
+
+**Performance note:** For large spaces (100+ stories), fetching full story content takes a few minutes due to rate-limit delays. This is a one-off maintenance task.
+
+---
+
 ## Using in Your Project
 
 Copy the `scripts/` folder into your project root:
@@ -131,7 +183,9 @@ const run = async () => {
 run().catch(err => { console.error(err); process.exit(1) })
 ```
 
-API methods: `get(path)`, `post(path, body)`, `put(path, body)`, `del(path)`
+API methods: `get(path)`, `getAll(path, params?)`, `post(path, body)`, `put(path, body)`, `del(path)`
+
+`getAll` automatically paginates through all results (100 per page) and returns a flat array — useful when the full list exceeds a single page.
 
 Each returns `{ status, data }` and automatically:
 - Sleeps 300ms before the request (rate-limit safety)
@@ -154,6 +208,23 @@ Key schema field types:
 - `option` — single-select dropdown
 - `bloks` — nested child components
 - `multilink` — links to pages, emails, or external URLs
+
+---
+
+## Roadmap
+
+**CMS Guide Generation** — A script that inspects your Storyblok space schema (components, fields, field types) and generates Markdown documentation automatically. The output includes:
+- Each component's purpose and where it's used
+- Every field with its type, helptext, and requirements (translatable, required, min/max length)
+- Examples of valid field values
+- Usage notes for content editors (this field expects ISO dates, this array field is sortable, etc.)
+
+The guide can be:
+- Stored as static docs in your project repo (checked into git for versioning)
+- Kept up-to-date by running the script each sprint
+- Shared with non-technical stakeholders (clients, content teams) to onboard them on your CMS structure
+
+This reduces onboarding time and prevents mistakes caused by misunderstanding field types or expectations.
 
 ---
 
