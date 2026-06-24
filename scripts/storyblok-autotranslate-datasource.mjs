@@ -68,12 +68,10 @@ const run = async () => {
   log("✅", `Found datasource: ${translations.name}`)
 
   log("📡", "Fetching dimensions...")
-  const { data: dimRes } = await api.get(
-    `/datasources/${translations.id}/datasource_dimensions`
-  )
-  const dimensions = dimRes.datasource_dimensions ?? []
+  // Dimensions are returned as part of the datasource, not a separate endpoint
+  const dimensions = translations.dimensions ?? []
 
-  const deDimension = dimensions.find((d) => d.value === "de")
+  const deDimension = dimensions.find((d) => d.entry_value === "de" || d.value === "de")
   if (!deDimension) {
     log("❌", 'German "de" dimension not found')
     log("💡", "Create it manually in Storyblok: Datasources > Translations > Config > Dimensions")
@@ -81,18 +79,25 @@ const run = async () => {
   }
   log("✅", `Found German dimension: ${deDimension.name}`)
 
-  log("📡", "Fetching base entries (English)...")
-  const { data: baseRes } = await api.get(
-    `/datasources/${translations.id}/datasource_entries?per_page=1000`
+  log("📡", "Fetching entries...")
+  const { data: entriesRes } = await api.get(
+    `/datasource_entries?datasource_id=${translations.id}&per_page=1000`
   )
-  const baseEntries = baseRes.datasource_entries ?? []
+  const entries = entriesRes.datasource_entries ?? []
 
-  log("📡", "Fetching German dimension entries...")
-  const { data: deRes } = await api.get(
-    `/datasources/${translations.id}/datasource_entries?datasource_dimension_id=${deDimension.id}&per_page=1000`
-  )
-  const deEntries = deRes.datasource_entries ?? []
-  const deByName = new Map(deEntries.map((e) => [e.name, e.dimension_value]))
+  // Build a map of existing German translations
+  // Note: German translations are stored in the 'value' field when querying with dimension_id
+  const deByName = new Map()
+  entries.forEach((e) => {
+    if (e.value) {
+      deByName.set(e.name, e.value)
+    }
+  })
+
+  // Filter to only entries without German translation (or --force to retranslate all)
+  const baseEntries = FORCE_RETRANSLATE
+    ? entries
+    : entries.filter(e => !deByName.has(e.name))
 
   log("", "")
   log("🔄", `Processing ${baseEntries.length} entries...`)
@@ -109,15 +114,21 @@ const run = async () => {
       continue
     }
 
-    log("🌐", `Translating "${entry.value}"...`)
+    log("🌐", `Translating "${entry.name}": "${entry.value}"...`)
     const de = await translateEnToDE(entry.value)
 
     const { status } = await api.put(
-      `/datasources/${translations.id}/datasource_entries/${entry.id}?datasource_dimension_id=${deDimension.id}`,
-      { datasource_entry: { dimension_value: de } }
+      `/datasource_entries/${entry.id}?dimension_id=${deDimension.id}`,
+      {
+        datasource_entry: {
+          value: de,
+          dimension_value: de,
+          datasource_id: translations.id,
+        },
+      }
     )
 
-    if (status === 200) {
+    if (status === 200 || status === 204) {
       log("✅", `${entry.name} → "${de}"`)
       translated++
     } else {
