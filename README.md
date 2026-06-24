@@ -138,6 +138,23 @@ Each returns `{ status, data }` and automatically:
 - Adds `Authorization` + `Content-Type: application/json` headers
 - Parses the JSON response (or returns `{}` if parsing fails)
 
+### Example: Creating Content Types
+
+See `scripts/example-create-content-type.mjs` for a complete example that shows:
+- How to check for existing components
+- How to define a component schema with different field types
+- How to create components via POST request
+- How to handle errors and idempotency
+
+Key schema field types:
+- `text` — plain text input
+- `richtext` — formatted text with links, images
+- `asset` — images, videos, files
+- `boolean` — yes/no toggle
+- `option` — single-select dropdown
+- `bloks` — nested child components
+- `multilink` — links to pages, emails, or external URLs
+
 ---
 
 ## Troubleshooting
