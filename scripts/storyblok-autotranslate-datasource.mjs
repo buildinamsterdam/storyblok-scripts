@@ -1,16 +1,17 @@
 /**
- * Auto-translates missing dimension values in the "translations" datasource.
+ * Auto-translates EMPTY dimension values in the "translations" datasource.
  * Fills gaps in German (de) dimension using the free MyMemory translation API.
+ *
+ * SAFETY: This script ONLY fills empty fields. It NEVER overwrites existing values,
+ * even if they appear incorrect. This prevents data loss and manual fixes from being
+ * overwritten.
  *
  * This helps when you have UI strings that need translation but don't want to
  * manually translate each one. The script provides a rough first-pass translation
  * that editors can review and refine.
  *
  * Usage:
- *   node scripts/storyblok-autotranslate-datasource.mjs [--force]
- *
- * Options:
- *   --force   Re-translate all entries, even those already translated (careful!)
+ *   node scripts/storyblok-autotranslate-datasource.mjs
  *
  * Required in .env.local:
  *   STORYBLOK_PERSONAL_MANAGEMENT_TOKEN
@@ -22,8 +23,6 @@
  */
 
 import { loadEnv, createApi, log } from "./storyblok-helper.mjs"
-
-const FORCE_RETRANSLATE = process.argv.includes("--force")
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -79,41 +78,36 @@ const run = async () => {
   }
   log("✅", `Found German dimension: ${deDimension.name}`)
 
-  log("📡", "Fetching entries...")
-  const { data: entriesRes } = await api.get(
+  log("📡", "Fetching base entries (English)...")
+  const { data: baseRes } = await api.get(
     `/datasource_entries?datasource_id=${translations.id}&per_page=1000`
   )
-  const entries = entriesRes.datasource_entries ?? []
+  const baseEntries = baseRes.datasource_entries ?? []
 
-  // Build a map of existing German translations
-  // Note: German translations are stored in the 'value' field when querying with dimension_id
-  const deByName = new Map()
-  entries.forEach((e) => {
-    if (e.value) {
-      deByName.set(e.name, e.value)
+  log("📡", "Fetching German dimension entries...")
+  const { data: deRes } = await api.get(
+    `/datasource_entries?datasource_id=${translations.id}&dimension_id=${deDimension.id}&per_page=1000`
+  )
+
+  // Build a map of EMPTY German translations (ones that need filling)
+  // NEVER overwrite existing values, even if --force is used
+  const emptyDE = new Map()
+  deRes.datasource_entries.forEach((e) => {
+    if (!e.value || e.value === "") {
+      emptyDE.set(e.name, true)
     }
   })
 
-  // Filter to only entries without German translation (or --force to retranslate all)
-  const baseEntries = FORCE_RETRANSLATE
-    ? entries
-    : entries.filter(e => !deByName.has(e.name))
+  // Only translate entries with empty German values
+  const toTranslate = baseEntries.filter(e => emptyDE.has(e.name))
 
   log("", "")
-  log("🔄", `Processing ${baseEntries.length} entries...`)
+  log("🔄", `Processing ${toTranslate.length} empty entries (NEVER overwriting existing values)...`)
 
   let translated = 0
   let skipped = 0
 
-  for (const entry of baseEntries) {
-    const existing = deByName.get(entry.name)
-
-    if (!FORCE_RETRANSLATE && existing) {
-      log("⏭", `${entry.name} — already translated (${existing})`)
-      skipped++
-      continue
-    }
-
+  for (const entry of toTranslate) {
     log("🌐", `Translating "${entry.name}": "${entry.value}"...`)
     const de = await translateEnToDE(entry.value)
 
