@@ -11,6 +11,8 @@ Reusable Node.js scripts for managing Storyblok spaces. Automate translation set
 ## Usage & context
 These scripts were set up during the work on the [Front Row website](https://github.com/buildinamsterdam/front-row-platform). They reduced a lot of manual work. You can use these scripts, but also use them as inspiration to see how you can adapt it to your projects.
 
+I would recommend that experiment and try these out during development and new stores. It's easy to overwrite content and reset your progress. 
+
 ## Setup
 
 1. Copy `.env.example` → `.env.local`
