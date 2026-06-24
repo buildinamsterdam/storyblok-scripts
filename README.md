@@ -8,6 +8,9 @@ Reusable Node.js scripts for managing Storyblok spaces. Automate translation set
 - **Storyblok workspace** with Management API access
 - **.env.local** with two environment variables
 
+## Usage & context
+These scripts were set up during the work on the [Front Row website](https://github.com/buildinamsterdam/front-row-platform). They reduced a lot of manual work. You can use these scripts, but also use them as inspiration to see how you can adapt it to your projects.
+
 ## Setup
 
 1. Copy `.env.example` → `.env.local`
@@ -24,7 +27,7 @@ Reusable Node.js scripts for managing Storyblok spaces. Automate translation set
 
 ### `storyblok-make-fields-translatable.mjs`
 
-**When to use:** You're scaffolding a new Storyblok space or enabling a second language. Every field across every content type needs its "Translatable" toggle switched on. Doing this manually in the UI takes hours and is error-prone. This script does it in seconds, consistently.
+**When to use:** You're scaffolding a new Storyblok space or enabling a second language. Every field across every content type needs its "Translatable" toggle switched on. Doing this manually in the UI is tedious and is error-prone. This script does it in seconds.
 
 **What it does:**
 - Fetches all components (blocks, elements, entities)
@@ -49,7 +52,7 @@ node scripts/storyblok-make-fields-translatable.mjs
 
 ### `storyblok-autotranslate-datasource.mjs`
 
-**When to use:** After enabling translations, UI string datasources (like button labels, form placeholders) still need values for each language. Translating these manually is tedious, and clients may not have linguistic resources. This script auto-fills missing dimension values using the free MyMemory API, giving the client a rough first-pass translation to review and refine.
+**When to use:** After enabling translations, UI string datasources (like button labels, form placeholders) still need values for each language. Translating these manually is takes a lot of time, and clients may not have the resources. This script auto-fills missing dimension values using the free MyMemory API, giving the client a rough first-pass translation to review and refine.
 
 **What it does:**
 - Finds the `translations` datasource and the German (`de`) dimension
